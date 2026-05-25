@@ -1,10 +1,10 @@
-const express = require("express");
-const { MongoClient } = require("mongodb");
+import express from "express";
+import { MongoClient } from "mongodb";
 
-const app     = express();
-const PORT    = process.env.PORT || 3000;
-const SECRET  = process.env.API_SECRET;
-const MONGO   = process.env.MONGODB_URI;
+const app    = express();
+const PORT   = process.env.PORT || 3000;
+const SECRET = process.env.API_SECRET;
+const MONGO  = process.env.MONGODB_URI;
 
 app.use(express.json({ limit: "1mb" }));
 
@@ -16,7 +16,7 @@ MongoClient.connect(MONGO)
   })
   .catch(err => console.error("❌ MongoDB error:", err));
 
-// POST /api/events — Unity gửi events vào đây
+// POST /api/events
 app.post("/api/events", async (req, res) => {
   if (req.headers["x-api-secret"] !== SECRET)
     return res.status(401).json({ error: "Unauthorized" });
@@ -34,7 +34,7 @@ app.post("/api/events", async (req, res) => {
   }
 });
 
-// GET /api/summary — xem thống kê
+// GET /api/summary
 app.get("/api/summary", async (req, res) => {
   if (req.headers["x-api-secret"] !== SECRET)
     return res.status(401).json({ error: "Unauthorized" });
@@ -48,20 +48,4 @@ app.get("/api/summary", async (req, res) => {
         { $match: { event_name: { $in: ["LevelStart","LevelComplete","LevelFail"] } } },
         { $group: {
             _id: "$level_id",
-            started:   { $sum: { $cond: [{ $eq: ["$event_name","LevelStart"]   }, 1, 0] } },
-            completed: { $sum: { $cond: [{ $eq: ["$event_name","LevelComplete"]}, 1, 0] } },
-            failed:    { $sum: { $cond: [{ $eq: ["$event_name","LevelFail"]    }, 1, 0] } },
-        }},
-        { $sort: { _id: 1 } }
-      ]).toArray()
-    ]);
-    res.json({ total_events: total, total_users: users, levels });
-  } catch (err) {
-    res.status(500).json({ error: err.message });
-  }
-});
-
-// Health check
-app.get("/health", (_, res) => res.json({ status: "ok" }));
-
-app.listen(PORT, () => console.log(`Server on port ${PORT}`));
+            started:   { $sum: { $cond: [{ $eq: ["$ev
