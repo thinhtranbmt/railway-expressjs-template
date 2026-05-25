@@ -12,19 +12,18 @@ let db;
 MongoClient.connect(MONGO)
   .then(client => {
     db = client.db("roxane_analytics");
-    console.log("✅ MongoDB connected");
+    console.log("MongoDB connected");
   })
-  .catch(err => console.error("❌ MongoDB error:", err));
+  .catch(err => console.error("MongoDB error:", err));
 
-// POST /api/events
 app.post("/api/events", async (req, res) => {
-  if (req.headers["x-api-secret"] !== SECRET)
+  if (req.headers["x-api-secret"] !== SECRET) {
     return res.status(401).json({ error: "Unauthorized" });
-
+  }
   const { events } = req.body;
-  if (!Array.isArray(events) || events.length === 0)
+  if (!Array.isArray(events) || events.length === 0) {
     return res.status(400).json({ error: "No events" });
-
+  }
   try {
     const docs = events.map(e => ({ ...e, received_at: new Date() }));
     await db.collection("events").insertMany(docs);
@@ -34,18 +33,29 @@ app.post("/api/events", async (req, res) => {
   }
 });
 
-// GET /api/summary
 app.get("/api/summary", async (req, res) => {
-  if (req.headers["x-api-secret"] !== SECRET)
+  if (req.headers["x-api-secret"] !== SECRET) {
     return res.status(401).json({ error: "Unauthorized" });
-
+  }
   try {
     const col = db.collection("events");
-    const [total, users, levels] = await Promise.all([
-      col.countDocuments(),
-      col.distinct("user_id").then(r => r.length),
-      col.aggregate([
-        { $match: { event_name: { $in: ["LevelStart","LevelComplete","LevelFail"] } } },
-        { $group: {
-            _id: "$level_id",
-            started:   { $sum: { $cond: [{ $eq: ["$ev
+    const total = await col.countDocuments();
+    const users = await col.distinct("user_id");
+    const recent = await col.find({}).sort({ received_at: -1 }).limit(10).toArray();
+    res.json({
+      total_events: total,
+      total_users: users.length,
+      recent_events: recent
+    });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+app.get("/health", (req, res) => {
+  res.json({ status: "ok" });
+});
+
+app.listen(PORT, () => {
+  console.log("Server running on port " + PORT);
+});
