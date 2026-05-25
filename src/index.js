@@ -7,7 +7,7 @@ const SECRET = process.env.API_SECRET;
 const MONGO  = process.env.MONGODB_URI;
 
 app.use(express.json({ limit: "1mb" }));
-
+// Analytics server v2
 let db;
 
 async function startServer() {
